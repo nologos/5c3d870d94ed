@@ -1,4 +1,5 @@
 
+import time
 import pandas as pd
 import numpy as np
 import json
@@ -11,43 +12,29 @@ import json
 
 app = FastAPI()
 
-
-
 database = json.loads(open("database.json", "r").read())
 df = pd.read_json('database.json')
-herodatabase = json.loads(open("herodatabase.json", "r").read())
+
+
 
 
 def component_heroSelection(herodatabase):
     # time saved:
     # 0.07 - 0.1
     # 0.01 - 0.02
-    try:
-        # check if component already compiled
-        heroselection = open("components/heroselection.html", "r").read()
-        return heroselection
-    except FileNotFoundError:
-        heroselection = '<select onchange="location = this.value;">'
-        heroselection += f'<option value="/"></option>'
-        herodatabase = sorted(herodatabase, key=lambda k: k['localized_name'])
-        for hero in herodatabase:
-                heroselection += f'<option value="/{hero["id"]}">{hero["localized_name"]}</option>'
-        heroselection += '</select>'
-        open("components/heroselection.html", "w").write(heroselection)
-        return heroselection
-
-heroselection = component_heroSelection(herodatabase)
-
-
-
-
-
-
-# measure command speed
-import time
-# start = time.time()
-# end = time.time()
-# print(end - start)
+    # try:
+    #     # check if component already compiled
+    #     heroselection = open("components/heroselection.html", "r").read()
+    #     return heroselection
+    # except FileNotFoundError:
+    heroselection = '<select onchange="location = this.value;">'
+    heroselection += f'<option value="/"></option>'
+    herodatabase = sorted(herodatabase, key=lambda k: k['localized_name'])
+    for hero in herodatabase:
+            heroselection += f'<option value="/{hero["id"]}">{hero["localized_name"]}</option>'
+    heroselection += '</select>'
+    # open("components/heroselection.html", "w").write(heroselection)
+    return heroselection
 
 
 # a,b,c = analysis(df, 114,106)
@@ -92,6 +79,40 @@ def list_pairs(database,hero_id):
     return list
 
 
+
+def component_summary(homeSummary):
+    homeSummarya = homeSummary[:50]
+    homeSummarya = sorted(homeSummarya, key=lambda k: k['laneWinrate'], reverse=True)
+    summary = "<table>"
+    summary += "<tr><th>Hero</th><th>Matches Played</th><th>Lane Winrate</th><th>Game Winrate</th></tr>"
+    for hero in homeSummarya:
+        summary += f"""<tr>
+            <td>{get_hero_name(hero["playerID"])}</td>
+            <td>{hero["matches_played"]}</td>
+            <td>{hero["laneWinrate"]*100:.1f}%</td>
+            <td>{hero["gameWinrate"]*100:.1f}%</td>
+        </tr>"""
+    summary += "</table>"
+    # open("components/summary.html", "w").write(summary)
+    return summary
+
+
+
+
+herodatabase = json.loads(open("herodatabase.json", "r").read())
+heroselection = component_heroSelection(herodatabase)
+
+
+homeSummary = json.loads(open("summary.json", "r").read())
+summary = component_summary(homeSummary)
+
+dblen = len(database)
+v2dblen = len([match for match in database if 'didWinnerWin' in match])
+
+
+
+
+
 @app.get("/")
 async def root():
     return HTMLResponse(content=html_content, status_code=200)
@@ -108,23 +129,24 @@ async def root(hero_id: int):
         html_itemContentHero += f"<tr><td>{pair[0]}</td><td>{pair[4]}</td><td>{a:.2f}%</td><td>{b:.2f}%</td><td>{c:.0f}</td></tr>"
     html_itemContentHero += "</table>"
     html_content = f"""
-    <html>
-        <head>
-            <title>Mid lane counter info</title>
-        </head>
-        {style}
-        <body>
-            <div>
-                {intro}</br>
-                {homebutton}hero_id<br>
-                {heroselection}
-                {html_itemContentHero}
-            </div>
-        </body>
-    </html>
-    """
+        <html>
+            <head>
+                <title>Mid lane counter info</title>
+            </head>
+            {style}
+            <body>
+                <div>
+                    {intro}</br>
+                    {homebutton}hero_id<br>
+                    {heroselection}
+                    {html_itemContentHero}
+                </div>
+            </body>
+        </html>
+        """
     aa  = html_content.replace("hero_id", f"hero_id: {get_hero_name(hero_id)}")
     return HTMLResponse(content=aa, status_code=200)
+
 
 
 
@@ -165,7 +187,9 @@ style = """
 </style>
 """
 
+
 intro = f"""
+
 <p>
     1. You can use this data as a counter picker:<br>
     select the hero your opponent picked and scroll to the botton to see its worst matchups
@@ -174,20 +198,11 @@ intro = f"""
     2. You can you this data as a knowlege check for your hero:<br>
     what heroes on average beat you in lane and which heroes you beat. To be more aware how you can behave in lane without having experienced the matchup.
 </p>
+<p>matches in the databse   &emsp; &emsp;&emsp;:{dblen}</p>
+<p>v2 matches in the databse &emsp;&emsp;:{v2dblen}</p>
 
 """
 
-fullstats = f"""
-hello world<br>
-hello world<br>
-hello world<br>
-hello world<br>
-hello world<br>
-hello world<br>
-hello world<br>
-hello world<br>
-hello world<br>
-"""
 
 html_content = f"""
 <html>
@@ -200,7 +215,7 @@ html_content = f"""
             {intro}</br>
             {homebutton} hero_id<br>
             {heroselection}
-            {fullstats}
+            {summary}
         </div>
     </body>
 </html>
@@ -208,3 +223,4 @@ html_content = f"""
 
 
 # uvicorn.run(app, host="0.0.0.0", port=5000)
+
