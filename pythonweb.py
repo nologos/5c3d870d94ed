@@ -75,7 +75,7 @@ def list_pairs(database,hero_id):
         # counter object makes groups matching pairs and counts them
         # this loop sorts frequency of pairs
         a,b = pair
-        list.append((get_hero_name(a),a, get_hero_name(b),b, count))
+        list.append((a, b, count))
     return list
 
 
@@ -125,8 +125,8 @@ async def root(hero_id: int):
     html_itemContentHero = f"this displays how well {get_hero_name(hero_id)} performs versus frequent opponents,Draw Winrate is a more rounded metric giving half score if match was close</br>"
     html_itemContentHero += "<table><tr><th>Pair</th><th>Count</th><th>Agressive Winrate</th><th>Draw Winrate</th><th>Average Efficiency Difference</th></tr>"
     for pair in list_pairs(database,hero):
-        a,b,c = analysis(df, pair[3],pair[1])
-        html_itemContentHero += f"<tr><td>{pair[0]}</td><td>{pair[4]}</td><td>{a:.2f}%</td><td>{b:.2f}%</td><td>{c:.0f}</td></tr>"
+        a,b,c = analysis(df, pair[1],pair[0])
+        html_itemContentHero += f"<tr><td>{get_hero_name(pair[0])}</td><td>{pair[2]}</td><td>{a:.2f}%</td><td>{b:.2f}%</td><td>{c:.0f}</td></tr>"
     html_itemContentHero += "</table>"
     html_content = f"""
         <html>
